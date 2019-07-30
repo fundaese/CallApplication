@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/relativeLayout"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_gravity="center"
+    android:background="@color/lightgray">
+
+    <ImageView
+        android:id="@+id/unregBtn"
+        android:layout_width="98dp"
+        android:layout_height="78dp"
+        android:layout_marginTop="40dp"
+        android:clickable="true"
+        android:visibility="visible"
+        app:srcCompat="@drawable/back"
+        tools:srcCompat="@drawable/indir" />
+
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="219dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="50dp"
+        android:fontFamily="sans-serif-condensed-medium"
+        android:gravity="center_horizontal"
+        android:text="CALL LIST"
+        android:textSize="36sp" />
+
+    <ListView
+        android:id="@+id/callList"
+        android:layout_width="364dp"
+        android:layout_height="352dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="40dp"
+        android:divider="#4834d4"
+        android:dividerHeight="1dp"
+        android:listSelector="#dff9fb"
+        tools:layout_conversion_wrapHeight="1328"
+        tools:layout_conversion_wrapWidth="1038"></ListView>
+
+</LinearLayout>
