@@ -1,12 +1,14 @@
 package com.example.callapplication;
 
-
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-
+import android.os.Handler;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -34,16 +36,18 @@ import com.genband.mobile.impl.utilities.constants.AdditionalInfoConstants;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Timer;
 
 /**
  * Created by user on 12.07.2019.
  */
 
-public class AudioCallActivity extends Activity implements CallApplicationListener {
+public class AudioCallActivity extends AppCompatActivity implements CallApplicationListener{
+    
     ImageView unregBtn;
     ListView callList;
     CallInterface call;
-    CallState callState;
+    Toolbar toolbar;
     public ArrayAdapter adapter;
     public static String getMyCallState() {return myCallState; }
     public static void setMyCallState(String myCallState) { AudioCallActivity.myCallState = myCallState; }
@@ -51,6 +55,19 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
     private static String caller;
     private static String myCallState;
     CallServiceInterface callService;
+    int stateNumber;
+    OutGoingCallFragment outGoingCallFragment = new OutGoingCallFragment();
+    InComingCallFragment ınComingCallFragment = new InComingCallFragment();
+
+    private CallStateListener callStateListener;
+
+    public void setCallStateListener(CallStateListener callStateListener) {
+        this.callStateListener = callStateListener;
+    }
+
+    Handler handler = new Handler();
+    Timer timer;
+    String username;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +76,8 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
 
         callList = (ListView) findViewById(R.id.callList);
         unregBtn = (ImageView) findViewById(R.id.unregBtn);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+
 
         ServiceProvider serviceProvider = ServiceProvider.getInstance(getApplicationContext());
         callService = serviceProvider.getInstance(getApplicationContext()).getCallService();
@@ -77,9 +96,11 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
         names.add("adem6@spidr.com");
         names.add("adem7@spidr.com");
         names.add("adem8@spidr.com");
+        names.add("emin1@spidr.com");
 
         adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,names);
         callList.setAdapter(adapter);
+
 
         callList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -122,17 +143,21 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
     }
 
     public void callExample(String name) {
-
         String terminatorAddress = name ;
-
         callService.createOutgoingCall(terminatorAddress, this, new OutgoingCallCreateInterface() {
             @Override
             public void callCreated(OutgoingCallInterface callInterface) {
                 callInterface.establishAudioCall();
-                Intent callIntent = new Intent(AudioCallActivity.this,OutCallActivity.class);
-                callIntent.putExtra("calleename",name);
-                startActivity(callIntent);
-                Log.d("CALL","SUCCEEEESSSSSSSSSSSS");
+                CallInterface call;
+                FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                fragmentTransaction.replace(R.id.flContainer,outGoingCallFragment,callInterface.getId());
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
+
+                Bundle bundle = new Bundle();
+                bundle.putString("name", terminatorAddress);
+
+                outGoingCallFragment.setArguments(bundle);
             }
             @Override
             public void callCreationFailed(MobileError error) {
@@ -144,12 +169,11 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
     @Override
     public void incomingCall(IncomingCallInterface ıncomingCallInterface) {
         this.call=ıncomingCallInterface;
+        Log.d("Fundi" , call.getCallState().getType().toString()); //INITIAL
         AlertDialog.Builder Builder = new AlertDialog.Builder(AudioCallActivity.this);
         Builder.setCancelable(true);
-        Builder.setTitle(caller);
-        Builder.setMessage(myCallState);
-
-        caller = ıncomingCallInterface.getCallerName();
+        Builder.setTitle(call.getCallerAddress());
+        Builder.setMessage(call.getCallState().getType().toString());
 
         Builder.setNegativeButton("Reject", new DialogInterface.OnClickListener() {
             @Override
@@ -157,13 +181,21 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
                 ıncomingCallInterface.rejectCall();
             }
         });
-
         Builder.setPositiveButton("Accept", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                Log.d("CALL","ACCEPT------");
-                Log.d("Fundaaaaaaa" , call.getCallState().getType().toString());
                 ıncomingCallInterface.acceptCall(false);
+
+                FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                fragmentTransaction.replace(R.id.f2Container,ınComingCallFragment,ıncomingCallInterface.getId());
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
+
+                Bundle bund = new Bundle();
+                bund.putString("callername",call.getCallerAddress());
+                bund.putString("callstateee",call.getCallState().getType().toString());
+                ınComingCallFragment.setArguments(bund);
+
             }
         });
         Builder.show();
@@ -171,72 +203,56 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
 
     @Override
     public void callStatusChanged(CallInterface callInterface, CallState callState) {
+
         myCallState = callState.getType().toString();
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(callInterface.getId());
+        if (callStateListener != null) {
+            callStateListener.callStateChange(callInterface, callState);
+        }
 
         switch (callState.getType()) {
-
             case INITIAL:
+                Log.i("Call", "Call came");
+                stateNumber = 0;
                 break;
-
             case SESSION_PROGRESS:
                 Log.i("Call", "Call is in early media state");
                 break;
-
             case ENDED:
-                switch(callState.getStatusCode()) {
-                    case 404:
-                        Log.i("Call", "Callee does not exist");
-                        setMyCallState("ENDED");
-                        break;
-                    case 480:
-                        Log.i("Call", "Callee is offline");
-                        setMyCallState("ENDED");
-                        break;
-                    case 603:
-                        Log.i("Call", "Callee rejected the call");
-                        setMyCallState("Rejected");
-                        break;
-                    case 487:
-                        Log.i("Call", "Callee did not answer");
-                        setMyCallState("NoAnswer");
-                        break;
-                    case CallState.STATUS_CODE_NOT_PROVIDED:
-                        Log.i("Call", "Call end reason is not provided");
-                        break;
-                    case CallState.ENDED_BY_LOCAL:
-                        Log.i("Call", "Caller ended the call normally");
-                        setMyCallState("ENDED");
-                        break;
-                    case CallState.RESPONDED_FROM_ANOTHER_DEVICE:
-                        Log.i("Call", "Other device responded to incoming call");
-                        setMyCallState("ENDED");
-                        break;
-                    default:
-                        break;
+                stateNumber = 1;
+                Fragment fragment = getSupportFragmentManager().findFragmentByTag(callInterface.getId());
+                if (fragment != null) {
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .remove(fragment)
+                            .commit();
                 }
-                break;
-            case IN_CALL:
-                Log.i("Call", "Call establishment is successful");
-                setMyCallState("IN_CALL");
+              this.onBackPressed();
+                Log.i("Call", "Callee does not exist");
                 break;
             case RINGING:
+                stateNumber = 3;
                 Log.i("Call", "Callee is ringing now");
-                setMyCallState("RINGING");
+                Log.d("MYINT", "value: " + stateNumber);
+                break;
+            case IN_CALL:
+                stateNumber = 2;
+                Log.i("Call", "Call establishment is successful");
                 break;
             case DIALING:
-                setMyCallState("DIALING");
+                stateNumber = 4;
                 break;
             case ANSWERING:
-                setMyCallState("ANSWERING");
+                stateNumber = 5;
                 break;
             case UNKNOWN:
+                stateNumber = 6;
                 break;
             default:
                 break;
         }
 
     }
-
 
     @Override
     public void mediaAttributesChanged(CallInterface callInterface, MediaAttributes mediaAttributes) {
@@ -267,12 +283,10 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
 
     @Override
     public void errorReceived(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void errorReceived(MobileError mobileError) {
-
     }
 
     @Override
@@ -319,119 +333,99 @@ public class AudioCallActivity extends Activity implements CallApplicationListen
 
     @Override
     public void videoStopSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void videoStopFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void videoStartSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void videoStartFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void muteCallSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void muteCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void unMuteCallSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void unMuteCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void holdCallSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void holdCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void transferCallSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void transferCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void unHoldCallSucceed(CallInterface callInterface) {
-
     }
 
     @Override
     public void unHoldCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void sendCustomParametersSuccess(CallInterface callInterface) {
-
     }
 
     @Override
     public void sendCustomParametersFail(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void joinSucceeded(CallInterface callInterface) {
-
     }
 
     @Override
     public void joinFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void endCallSucceeded(CallInterface callInterface) {
-
     }
 
     @Override
     public void endCallFailed(CallInterface callInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void ringingFeedbackSucceeded(IncomingCallInterface ıncomingCallInterface) {
-
     }
 
     @Override
     public void ringingFeedbackFailed(IncomingCallInterface ıncomingCallInterface, MobileError mobileError) {
-
     }
 
     @Override
     public void notifyCallProgressChange(CallInterface callInterface) {
-
     }
 
+    @Override
+    public void onBackPressed() {
 
+    }
 }
 

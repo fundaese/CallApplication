@@ -2,15 +2,13 @@ package com.example.callapplication;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.StrictMode;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.genband.mobile.NotificationStates;
 import com.genband.mobile.OnCompletionListener;
@@ -18,14 +16,11 @@ import com.genband.mobile.RegistrationApplicationListener;
 import com.genband.mobile.RegistrationService;
 import com.genband.mobile.RegistrationStates;
 import com.genband.mobile.ServiceProvider;
-import com.genband.mobile.api.services.call.CallInterface;
 import com.genband.mobile.api.utilities.Configuration;
 import com.genband.mobile.api.utilities.Constants;
-
 import com.genband.mobile.api.utilities.ICEServers;
 import com.genband.mobile.api.utilities.MobileError;
 
-import static com.example.callapplication.R.*;
 import static com.genband.mobile.api.utilities.Constants.LogLevel.TRACE;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     EditText userName;
     EditText userPassword;
     Button regBtn;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         userName = (EditText) findViewById(R.id.userName);
         userPassword = (EditText) findViewById(R.id.userPassword);
         regBtn = (Button) findViewById(R.id.regBtn);
+
 
         regBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
                     };
 
                     ServiceProvider serviceProvider = ServiceProvider.getInstance(getApplicationContext());
-                    final RegistrationService registrationService = ServiceProvider.getInstance(getApplicationContext()).getRegistrationService();
+                    final RegistrationService registrationService = serviceProvider.getInstance(getApplicationContext()).getRegistrationService();
                     registrationService.setRegistrationApplicationListener(registrationListener);
 
                     Constants.SubscribeServices[] subscribeServices = {Constants.SubscribeServices.Call};

@@ -1,45 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/relativeLayout"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
-    android:layout_gravity="center"
     android:background="@color/lightgray">
 
-    <ImageView
-        android:id="@+id/unregBtn"
-        android:layout_width="98dp"
-        android:layout_height="78dp"
-        android:layout_marginTop="40dp"
-        android:clickable="true"
-        android:visibility="visible"
-        app:srcCompat="@drawable/back"
-        tools:srcCompat="@drawable/indir" />
+    <android.support.v7.widget.Toolbar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#3700b3"
+        android:minHeight="?attr/actionBarSize"
+        android:id="@+id/toolbar"
+        >
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/unregBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/loggoutt"
+            android:layout_gravity="start"/>
+
+        <TextView
+            android:layout_width="80dp"
+            android:layout_height="30dp"
+            android:text="Logout"
+            android:gravity="center"
+            android:textSize="20dp"
+            android:textColor="@color/white"/>
+
+    </android.support.v7.widget.Toolbar>
+
 
     <TextView
         android:id="@+id/textView4"
-        android:layout_width="219dp"
+        android:layout_width="230dp"
         android:layout_height="wrap_content"
+        android:layout_below="@+id/toolbar"
+        android:layout_centerHorizontal="true"
         android:layout_gravity="center"
-        android:layout_marginTop="50dp"
         android:fontFamily="sans-serif-condensed-medium"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         android:text="CALL LIST"
-        android:textSize="36sp" />
+        android:textSize="36sp"
+        tools:text="CALL LIST" />
 
     <ListView
         android:id="@+id/callList"
-        android:layout_width="364dp"
-        android:layout_height="352dp"
-        android:layout_gravity="center"
-        android:layout_marginTop="40dp"
+        android:visibility="visible"
+        android:layout_width="450dp"
+        android:layout_height="650dp"
+        android:layout_below="@+id/textView4"
+        android:layout_centerInParent="true"
         android:divider="#4834d4"
         android:dividerHeight="1dp"
-        android:listSelector="#dff9fb"
-        tools:layout_conversion_wrapHeight="1328"
-        tools:layout_conversion_wrapWidth="1038"></ListView>
+        android:listSelector="#dff9fb">
+    </ListView>
 
-</LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/flContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <FrameLayout
+        android:id="@+id/f2Container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</RelativeLayout>
