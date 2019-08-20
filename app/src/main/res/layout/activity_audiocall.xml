@@ -8,33 +8,9 @@
     android:orientation="vertical"
     android:background="@color/lightgray">
 
-    <android.support.v7.widget.Toolbar
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#3700b3"
-        android:minHeight="?attr/actionBarSize"
+    <include
         android:id="@+id/toolbar"
-        >
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:id="@+id/unregBtn"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:src="@drawable/loggoutt"
-            android:layout_gravity="start"/>
-
-        <TextView
-            android:layout_width="80dp"
-            android:layout_height="30dp"
-            android:text="Logout"
-            android:gravity="center"
-            android:textSize="20dp"
-            android:textColor="@color/white"/>
-
-    </android.support.v7.widget.Toolbar>
-
+        layout="@layout/toolbar"/>
 
     <TextView
         android:id="@+id/textView4"

@@ -1,15 +1,17 @@
 package com.example.callapplication;
 
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -43,7 +45,7 @@ import java.util.Timer;
  */
 
 public class AudioCallActivity extends AppCompatActivity implements CallApplicationListener{
-    
+
     ImageView unregBtn;
     ListView callList;
     CallInterface call;
@@ -57,7 +59,7 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
     CallServiceInterface callService;
     int stateNumber;
     OutGoingCallFragment outGoingCallFragment = new OutGoingCallFragment();
-    InComingCallFragment ınComingCallFragment = new InComingCallFragment();
+    PopupFragment popupFragment = new PopupFragment();
 
     private CallStateListener callStateListener;
 
@@ -68,6 +70,7 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
     Handler handler = new Handler();
     Timer timer;
     String username;
+    static MediaPlayer mediaPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +78,8 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         setContentView(R.layout.activity_audiocall);
 
         callList = (ListView) findViewById(R.id.callList);
-        unregBtn = (ImageView) findViewById(R.id.unregBtn);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
 
         ServiceProvider serviceProvider = ServiceProvider.getInstance(getApplicationContext());
@@ -97,49 +100,33 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         names.add("adem7@spidr.com");
         names.add("adem8@spidr.com");
         names.add("emin1@spidr.com");
+        names.add("3221031@cucm1.spidrmulti.netas.lab.nortel.com");
+        names.add("3221045@cucm1.spidrmulti.netas.lab.nortel.com");
+        names.add("3221032@cucm1.spidrmulti.netas.lab.nortel.com");
 
         adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,names);
         callList.setAdapter(adapter);
 
+        String username = getIntent().getStringExtra("username");
 
         callList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 callExample(names.get(i));
+                play();
+                mediaPlayer.setLooping(true);
             }
         });
+    }
 
-        unregBtn.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view) {
+    public void play(){
+        mediaPlayer = MediaPlayer.create(AudioCallActivity.this,R.raw.sound);
+        mediaPlayer.start();
+    }
 
-                RegistrationApplicationListener registrationListener = new RegistrationApplicationListener() {
-                    @Override
-                    public void registrationStateChanged(RegistrationStates state) {
-                    }
-
-                    @Override
-                    public void notificationStateChanged(NotificationStates state) {
-                    }
-
-                    @Override
-                    public void onInternalError(MobileError mobileError) {
-                    }
-                };
-                final RegistrationService registrationService = ServiceProvider.getInstance(getApplicationContext()).getRegistrationService();
-                registrationService.unregisterFromServer(new OnCompletionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Intent intent = new Intent(AudioCallActivity.this, MainActivity.class);
-                        startActivity(intent);
-                    }
-                    @Override
-                    public void onFail(MobileError error) {
-                        Log.d("Funda", "Fail");
-                    }
-                });
-            }
-        });
+    public void stop(){
+        mediaPlayer = MediaPlayer.create(AudioCallActivity.this,R.raw.sound);
+        mediaPlayer.stop();
     }
 
     public void callExample(String name) {
@@ -148,7 +135,8 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
             @Override
             public void callCreated(OutgoingCallInterface callInterface) {
                 callInterface.establishAudioCall();
-                CallInterface call;
+
+                Fragment outGoingCallFragment = new OutGoingCallFragment();
                 FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
                 fragmentTransaction.replace(R.id.flContainer,outGoingCallFragment,callInterface.getId());
                 fragmentTransaction.addToBackStack(null);
@@ -167,10 +155,66 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.menu,menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.item1:
+                RegistrationApplicationListener registrationListener = new RegistrationApplicationListener() {
+                    @Override
+                    public void registrationStateChanged(RegistrationStates state) {
+                    }
+
+                    @Override
+                    public void notificationStateChanged(NotificationStates notificationStates) {
+
+                    }
+
+                    @Override
+                    public void onInternalError(MobileError mobileError) {
+                    }
+                };
+                final RegistrationService registrationService = ServiceProvider.getInstance(getApplicationContext()).getRegistrationService();
+                registrationService.unregisterFromServer(new OnCompletionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Intent intent = new Intent(AudioCallActivity.this, MainActivity.class);
+                        startActivity(intent);
+                    }
+                    @Override
+                    public void onFail(MobileError error) {
+                        Log.d("Funda", "Fail");
+                    }
+                });
+            break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     public void incomingCall(IncomingCallInterface ıncomingCallInterface) {
-        this.call=ıncomingCallInterface;
+        this.call = ıncomingCallInterface;
         Log.d("Fundi" , call.getCallState().getType().toString()); //INITIAL
-        AlertDialog.Builder Builder = new AlertDialog.Builder(AudioCallActivity.this);
+
+        Fragment popupFragment = new PopupFragment();
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.replace(R.id.f2Container,popupFragment,ıncomingCallInterface.getId());
+        fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.commit();
+
+        Bundle bund = new Bundle();
+        bund.putString("callername",call.getCallerAddress());
+        bund.putString("callstateee",call.getCallState().getType().toString());
+        popupFragment.setArguments(bund);
+
+
+        /*AlertDialog.Builder Builder = new AlertDialog.Builder(AudioCallActivity.this);
         Builder.setCancelable(true);
         Builder.setTitle(call.getCallerAddress());
         Builder.setMessage(call.getCallState().getType().toString());
@@ -186,6 +230,7 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
             public void onClick(DialogInterface dialogInterface, int i) {
                 ıncomingCallInterface.acceptCall(false);
 
+                Fragment ınComingCallFragment = new InComingCallFragment();
                 FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
                 fragmentTransaction.replace(R.id.f2Container,ınComingCallFragment,ıncomingCallInterface.getId());
                 fragmentTransaction.addToBackStack(null);
@@ -195,10 +240,9 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
                 bund.putString("callername",call.getCallerAddress());
                 bund.putString("callstateee",call.getCallState().getType().toString());
                 ınComingCallFragment.setArguments(bund);
-
             }
         });
-        Builder.show();
+        Builder.show()*/
     }
 
     @Override
@@ -220,6 +264,7 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
                 break;
             case ENDED:
                 stateNumber = 1;
+                stop();
                 Fragment fragment = getSupportFragmentManager().findFragmentByTag(callInterface.getId());
                 if (fragment != null) {
                     getSupportFragmentManager()
@@ -271,6 +316,7 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         if(type.equals(AdditionalInfoConstants.CALL_CREATE) || type.equals(AdditionalInfoConstants.INCOMING_CALL)) {
             callCreateTime = time;
         }
+
         long delay = time - callCreateTime;
         Log.i("Call", "Time from creating call until " + type + " is " + delay + "for callId" + callId );
         StringBuilder sb = new StringBuilder("{");
@@ -425,7 +471,6 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
 
     @Override
     public void onBackPressed() {
-
     }
 }
 

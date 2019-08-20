@@ -19,9 +19,6 @@ import com.genband.mobile.impl.services.call.CallState;
 import java.util.Timer;
 import java.util.TimerTask;
 
-/**
- * A simple {@link Fragment} subclass.
- */
 public class OutGoingCallFragment extends Fragment implements CallStateListener {
 
 
@@ -42,8 +39,7 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
     CallInterface  call;
     InComingCallFragment ınComingCallFragment;
 
-    public OutGoingCallFragment() {
-    }
+    public OutGoingCallFragment() {}
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -69,7 +65,6 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
                     call_state.setText("Ended");
                     callTime.stop();
                     stopCall();
-
                 } catch (MobileException e) {
                     e.printStackTrace();
                 }
@@ -83,6 +78,7 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
         this.call = callInterface;
         Log.i("CALLSTATE", callState.getType().toString());
         if(callState.getType().equals(CallState.Type.IN_CALL)) {
+            AudioCallActivity.mediaPlayer.stop();
             callTime.setBase(SystemClock.elapsedRealtime());
             Handler handler = new Handler();
             Timer timer;
@@ -108,10 +104,9 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
         else if(callState.getType().equals(CallState.Type.RINGING)){
             call_state.setText("Ringing"); }
         else if(callState.getType().equals(CallState.Type.ENDED)){
-            try { Thread.sleep(2000); }catch (Exception e){ e.printStackTrace(); }
             callTime.stop();
             call_state.setText("Ended");
-
+            AudioCallActivity.mediaPlayer.stop();
         }
     }
 

@@ -15,15 +15,13 @@ import android.widget.Chronometer;
 import android.widget.TextView;
 
 import com.genband.mobile.api.services.call.CallInterface;
+import com.genband.mobile.api.services.call.IncomingCallInterface;
 import com.genband.mobile.api.utilities.exception.MobileException;
 import com.genband.mobile.impl.services.call.CallState;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-/**
- * A simple {@link Fragment} subclass.
- */
 public class InComingCallFragment extends Fragment implements CallStateListener {
 
     public CallStateListener getCallStateListener() {
@@ -38,26 +36,26 @@ public class InComingCallFragment extends Fragment implements CallStateListener 
     TextView callerName;
     TextView callee_state;
     static Button end_calll;
+    Button accept_call;
     Chronometer calleeTime;
     CallInterface call;
+    IncomingCallInterface ıncomingCallInterface;
     OutGoingCallFragment outGoingCallFragment;
 
     Handler handler = new Handler();
     Timer timer;
 
 
-    public InComingCallFragment() {
-        // Required empty public constructor
-    }
-
+    public InComingCallFragment() {}
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.fragment_in_coming_call, container, false);
         callerName = (TextView) view.findViewById(R.id.caller_name);
         callee_state = (TextView) view.findViewById(R.id.callee_state);
-        end_calll = view.findViewById(R.id.end_calll);
+        end_calll = view.findViewById(R.id.end_call);
         calleeTime = (Chronometer) view.findViewById(R.id.callee_time);
+        accept_call = view.findViewById(R.id.accept_call);
 
         callerName.setText(getArguments().getString("callername"));
         callee_state.setText(getArguments().getString("callstateee"));
@@ -76,12 +74,7 @@ public class InComingCallFragment extends Fragment implements CallStateListener 
                     callee_state.setText("Ended");
                     calleeTime.stop();
                     stopCall();
-                    try {
-                        Thread.sleep(2000);
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
+                    AudioCallActivity.mediaPlayer.stop();
                 } catch (MobileException e) {
                     e.printStackTrace();
                 }
@@ -106,6 +99,7 @@ public class InComingCallFragment extends Fragment implements CallStateListener 
         }
 
         else if(callState.getType().equals(CallState.Type.IN_CALL)){
+            AudioCallActivity.mediaPlayer.stop();
             callee_state.setText("In Call");
             calleeTime.setVisibility(View.VISIBLE);
             TimerTask timerTask = new TimerTask() {
@@ -123,9 +117,9 @@ public class InComingCallFragment extends Fragment implements CallStateListener 
         }
 
         else if(callState.getType().equals(CallState.Type.ENDED)){
-            try { Thread.sleep(2000); }catch (Exception e){ e.printStackTrace(); }
             calleeTime.stop();
             callee_state.setText("Ended");
+            AudioCallActivity.mediaPlayer.stop();
         }
     }
 
