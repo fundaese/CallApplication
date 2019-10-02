@@ -7,6 +7,7 @@
     android:background="@drawable/bgimage"
     android:theme="@style/AppTheme">
 
+
     <EditText
         android:id="@+id/userName"
         android:layout_width="310dp"
@@ -38,6 +39,7 @@
         android:layout_marginRight="8dp"
         android:background="@drawable/input_field"
         android:ems="10"
+        android:imeOptions="actionDone"
         android:hint="Password"
         android:inputType="textPassword"
         android:textColorHint="@color/gray"

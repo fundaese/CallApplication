@@ -1,9 +1,16 @@
 package com.example.callapplication;
 
+import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.media.ToneGenerator;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -13,10 +20,13 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.genband.mobile.NotificationStates;
 import com.genband.mobile.OnCompletionListener;
@@ -30,57 +40,56 @@ import com.genband.mobile.api.services.call.CallServiceInterface;
 import com.genband.mobile.api.services.call.IncomingCallInterface;
 import com.genband.mobile.api.services.call.OutgoingCallCreateInterface;
 import com.genband.mobile.api.services.call.OutgoingCallInterface;
+import com.genband.mobile.api.utilities.Configuration;
 import com.genband.mobile.api.utilities.MobileError;
+import com.genband.mobile.api.utilities.OrientationMode;
+import com.genband.mobile.api.utilities.ScreenOrientation;
 import com.genband.mobile.api.utilities.exception.MobileException;
+import com.genband.mobile.core.webrtc.view.VideoView;
+import com.genband.mobile.impl.services.call.CallService;
 import com.genband.mobile.impl.services.call.CallState;
 import com.genband.mobile.impl.services.call.MediaAttributes;
 import com.genband.mobile.impl.utilities.constants.AdditionalInfoConstants;
 
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Timer;
 
-/**
- * Created by user on 12.07.2019.
- */
+import static org.webrtc.ContextUtils.getApplicationContext;
 
 public class AudioCallActivity extends AppCompatActivity implements CallApplicationListener{
 
-    ImageView unregBtn;
     ListView callList;
     CallInterface call;
-    Toolbar toolbar;
     public ArrayAdapter adapter;
     public static String getMyCallState() {return myCallState; }
-    public static void setMyCallState(String myCallState) { AudioCallActivity.myCallState = myCallState; }
-    public static String getCaller() { return caller; }
-    private static String caller;
     private static String myCallState;
     CallServiceInterface callService;
-    int stateNumber;
-    OutGoingCallFragment outGoingCallFragment = new OutGoingCallFragment();
-    PopupFragment popupFragment = new PopupFragment();
 
-    private CallStateListener callStateListener;
+    final ArrayList<String> names = new ArrayList<>();
+    public static final String PREFS_NAME = "LoginPrefs";
+    public boolean clicked1 = false;
+    public boolean clicked2 = false;
+    TextView tv4;
 
-    public void setCallStateListener(CallStateListener callStateListener) {
-        this.callStateListener = callStateListener;
-    }
-
-    Handler handler = new Handler();
-    Timer timer;
-    String username;
+    String name;
     static MediaPlayer mediaPlayer;
+    static Ringtone ringTone;
+    ToneGenerator tg;
+
+    /*public String[] names = {"adem1@spidr.com","adem1@spidr.com","adem1@spidr.com","adem1@spidr.com","adem1@spidr.com",
+            "adem1@spidr.com","adem1@spidr.com","adem1@spidr.com","emin1@spidr.com","android1@sdkpush.4d7m.att.com","android2@sdkpush.4d7m.att.com"};*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audiocall);
 
-        callList = (ListView) findViewById(R.id.callList);
+        callList = findViewById(R.id.callList);
         Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        tv4 = findViewById(R.id.textView4);
 
+        setSupportActionBar(toolbar);
+        Configuration.getInstance().setOrientationMode(OrientationMode.CAMERA_ORIENTATION_USES_NONE);
 
         ServiceProvider serviceProvider = ServiceProvider.getInstance(getApplicationContext());
         callService = serviceProvider.getInstance(getApplicationContext()).getCallService();
@@ -90,7 +99,8 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
             e.printStackTrace();
         }
 
-        final ArrayList<String> names = new ArrayList<>();
+        tv4.setVisibility(View.VISIBLE);
+
         names.add("adem1@spidr.com");
         names.add("adem2@spidr.com");
         names.add("adem3@spidr.com");
@@ -100,23 +110,66 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         names.add("adem7@spidr.com");
         names.add("adem8@spidr.com");
         names.add("emin1@spidr.com");
+        names.add("3221030@cucm1.spidrmulti.netas.lab.nortel.com");
         names.add("3221031@cucm1.spidrmulti.netas.lab.nortel.com");
-        names.add("3221045@cucm1.spidrmulti.netas.lab.nortel.com");
         names.add("3221032@cucm1.spidrmulti.netas.lab.nortel.com");
+        names.add("3221045@cucm1.spidrmulti.netas.lab.nortel.com");
+        names.add("android1@sdkpush.4d7m.att.com");
+        names.add("android2@sdkpush.4d7m.att.com");
 
         adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,names);
         callList.setAdapter(adapter);
 
-        String username = getIntent().getStringExtra("username");
-
         callList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                callExample(names.get(i));
-                play();
-                mediaPlayer.setLooping(true);
+                name = names.get(i);
+                MyDialog();
             }
         });
+    }
+
+    public void MyDialog(){
+        final Dialog MyDialog = new Dialog(AudioCallActivity.this);
+        MyDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        MyDialog.setContentView(R.layout.custom_dialog);
+        MyDialog.setTitle("PersonCard");
+
+        Button audiocall = MyDialog.findViewById(R.id.audiocall);
+        Button videocall = MyDialog.findViewById(R.id.videocall);
+        TextView calleeName = MyDialog.findViewById(R.id.calleeName);
+
+        calleeName.setText(name);
+        audiocall.setEnabled(true);
+        videocall.setEnabled(true);
+
+        audiocall.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MyDialog.dismiss();
+                callExample(name);
+                tg = new ToneGenerator(AudioManager.STREAM_VOICE_CALL, 100);
+                tg.startTone(ToneGenerator.TONE_CDMA_DIAL_TONE_LITE);
+                clicked1=true;
+                clicked2=false;
+                tv4.setVisibility(View.GONE);
+            }
+        });
+
+        videocall.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                clicked2=true;
+                clicked1=false;
+                MyDialog.dismiss();
+                callExample(name);
+                play();
+                mediaPlayer.setLooping(true);
+                tv4.setVisibility(View.GONE);
+            }
+        });
+
+        MyDialog.show();
     }
 
     public void play(){
@@ -124,28 +177,83 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         mediaPlayer.start();
     }
 
-    public void stop(){
-        mediaPlayer = MediaPlayer.create(AudioCallActivity.this,R.raw.sound);
-        mediaPlayer.stop();
+    private void stopPlaying() {
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+
+    public void tgStop(){
+        if (tg != null) {
+            tg.stopTone();
+            tg.release();
+            tg = null;
+        }
+    }
+
+    public static boolean stopRingtone() {
+        if(ringTone != null) {
+            ringTone.stop();
+            ringTone = null;
+            return true;
+        }
+        else
+            return false;
+    }
+
+    private void changeOrientationToLandscape() {
+        CallService.getInstance().rotateCameraOrientationToPosition(ScreenOrientation.LANDSCAPE);
     }
 
     public void callExample(String name) {
         String terminatorAddress = name ;
+
         callService.createOutgoingCall(terminatorAddress, this, new OutgoingCallCreateInterface() {
             @Override
             public void callCreated(OutgoingCallInterface callInterface) {
-                callInterface.establishAudioCall();
+                call = callInterface;
 
-                Fragment outGoingCallFragment = new OutGoingCallFragment();
-                FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.flContainer,outGoingCallFragment,callInterface.getId());
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+                if(clicked1) {
+                    callInterface.establishAudioCall();
+                    Fragment outGoingCallFragment = new OutGoingCallFragment();
+                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.flContainer, outGoingCallFragment, callInterface.getId());
+                    fragmentTransaction.addToBackStack(null);
+                    fragmentTransaction.commit();
 
-                Bundle bundle = new Bundle();
-                bundle.putString("name", terminatorAddress);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("name", terminatorAddress);
+                    outGoingCallFragment.setArguments(bundle);
 
-                outGoingCallFragment.setArguments(bundle);
+                    AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setMode(AudioManager.MODE_RINGTONE);
+                    audioManager.setSpeakerphoneOn(false);
+                }
+                else if(clicked2){
+                    VideoView localVideoView = (VideoView)findViewById(R.id.localVideoView);
+                    VideoView remoteVideoView = (VideoView)findViewById(R.id.remoteVideoView);
+
+                    CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(callInterface.getId());
+                    if (callStateListener != null) {
+                        callStateListener.createVideoCall(call);
+                    }
+                    callInterface.establishCall(true);
+                    Fragment videoOutGoingCall = new VideoOutGoingCallFragment();
+                    FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+                    fragmentTransaction.replace(R.id.flContainer, videoOutGoingCall, callInterface.getId());
+                    fragmentTransaction.addToBackStack(null);
+                    fragmentTransaction.commit();
+
+                    Bundle bundle = new Bundle();
+                    bundle.putString("name", terminatorAddress);
+                    videoOutGoingCall.setArguments(bundle);
+
+                    AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setMode(AudioManager.MODE_RINGTONE);
+                    audioManager.setSpeakerphoneOn(true);
+                }
             }
             @Override
             public void callCreationFailed(MobileError error) {
@@ -161,11 +269,12 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         return true;
     }
 
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
         switch (item.getItemId()){
             case R.id.item1:
+
                 RegistrationApplicationListener registrationListener = new RegistrationApplicationListener() {
                     @Override
                     public void registrationStateChanged(RegistrationStates state) {
@@ -184,8 +293,13 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
                 registrationService.unregisterFromServer(new OnCompletionListener() {
                     @Override
                     public void onSuccess() {
+                        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+                        SharedPreferences.Editor editor = settings.edit();
+                        editor.remove("logged");
+                        editor.commit();
                         Intent intent = new Intent(AudioCallActivity.this, MainActivity.class);
                         startActivity(intent);
+                        finish();
                     }
                     @Override
                     public void onFail(MobileError error) {
@@ -200,19 +314,53 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
     @Override
     public void incomingCall(IncomingCallInterface ıncomingCallInterface) {
         this.call = ıncomingCallInterface;
-        Log.d("Fundi" , call.getCallState().getType().toString()); //INITIAL
 
-        Fragment popupFragment = new PopupFragment();
-        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.replace(R.id.f2Container,popupFragment,ıncomingCallInterface.getId());
-        fragmentTransaction.addToBackStack(null);
-        fragmentTransaction.commit();
+        VideoView localVideoView = findViewById(R.id.localVideoView);
+        VideoView remoteVideoView = findViewById(R.id.remoteVideoView);
 
-        Bundle bund = new Bundle();
-        bund.putString("callername",call.getCallerAddress());
-        bund.putString("callstateee",call.getCallState().getType().toString());
-        popupFragment.setArguments(bund);
+        ıncomingCallInterface.setLocalVideoView(localVideoView);
+        ıncomingCallInterface.setRemoteVideoView(remoteVideoView);
 
+        if(ıncomingCallInterface.canReceiveVideo()) {
+            VideoIncomingCallFragment fragment = new VideoIncomingCallFragment();
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.replace(R.id.flContainer, fragment, ıncomingCallInterface.getId());
+            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.commit();
+
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            ringTone = RingtoneManager.getRingtone(getApplicationContext(), notification);
+            ringTone.play();
+
+            Bundle bund = new Bundle();
+            bund.putString("callername",call.getCallerAddress());
+            bund.putString("callstateee","Dialing");
+            fragment.setArguments(bund);
+
+            tv4.setVisibility(View.GONE);
+
+        }
+        else {
+            InComingCallFragment frag = new InComingCallFragment();
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.replace(R.id.flContainer, frag, ıncomingCallInterface.getId());
+            fragmentTransaction.addToBackStack(null);
+            fragmentTransaction.commit();
+
+            AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+            audioManager.setSpeakerphoneOn(false);
+
+            tv4.setVisibility(View.GONE);
+
+            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            ringTone = RingtoneManager.getRingtone(getApplicationContext(), notification);
+            ringTone.play();
+
+            Bundle bund = new Bundle();
+            bund.putString("callername", call.getCallerAddress());
+            bund.putString("callstateee", call.getCallState().getType().toString());
+            frag.setArguments(bund);
+        }
 
         /*AlertDialog.Builder Builder = new AlertDialog.Builder(AudioCallActivity.this);
         Builder.setCancelable(true);
@@ -242,11 +390,15 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
                 ınComingCallFragment.setArguments(bund);
             }
         });
-        Builder.show()*/
+        Builder.show();*/
     }
+
 
     @Override
     public void callStatusChanged(CallInterface callInterface, CallState callState) {
+
+        callInterface.getMediaAttributes().getRemoteVideo();
+        callInterface.getMediaAttributes().getLocalVideo();
 
         myCallState = callState.getType().toString();
         CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(callInterface.getId());
@@ -257,14 +409,14 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
         switch (callState.getType()) {
             case INITIAL:
                 Log.i("Call", "Call came");
-                stateNumber = 0;
                 break;
             case SESSION_PROGRESS:
                 Log.i("Call", "Call is in early media state");
                 break;
             case ENDED:
-                stateNumber = 1;
-                stop();
+                tgStop();
+                stopPlaying();
+                stopRingtone();
                 Fragment fragment = getSupportFragmentManager().findFragmentByTag(callInterface.getId());
                 if (fragment != null) {
                     getSupportFragmentManager()
@@ -272,35 +424,53 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
                             .remove(fragment)
                             .commit();
                 }
-              this.onBackPressed();
+                this.onBackPressed();
+                callList.setVisibility(View.VISIBLE);
                 Log.i("Call", "Callee does not exist");
                 break;
             case RINGING:
-                stateNumber = 3;
+                callList.setVisibility(View.GONE);
                 Log.i("Call", "Callee is ringing now");
-                Log.d("MYINT", "value: " + stateNumber);
                 break;
             case IN_CALL:
-                stateNumber = 2;
+                //r.stop();
+                stopRingtone();
+                stopPlaying();
+                tgStop();
+                callList.setVisibility(View.GONE);
                 Log.i("Call", "Call establishment is successful");
                 break;
             case DIALING:
-                stateNumber = 4;
+                callList.setVisibility(View.GONE);
                 break;
             case ANSWERING:
-                stateNumber = 5;
+                callList.setVisibility(View.GONE);
                 break;
             case UNKNOWN:
-                stateNumber = 6;
+                break;
+            case ON_HOLD:
+                stopPlaying();
+                callList.setVisibility(View.GONE);
+                break;
+            case ON_DOUBLE_HOLD:
+                stopPlaying();
+                callList.setVisibility(View.GONE);
                 break;
             default:
                 break;
         }
-
     }
 
     @Override
     public void mediaAttributesChanged(CallInterface callInterface, MediaAttributes mediaAttributes) {
+        float remoteVideoAspectRatio = mediaAttributes.getRemoteVideoAspectRatio();
+        float localVideoAspectRatio = mediaAttributes.getLocalVideoAspectRatio();
+
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(callInterface.getId());
+        if (callStateListener != null) {
+            callStateListener.mediaAttributesChanged(call);
+        }
+
     }
 
     @Override
@@ -378,59 +548,124 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
     }
 
     @Override
-    public void videoStopSucceed(CallInterface callInterface) {
+    public void videoStartSucceed(CallInterface call) {
+    //called when video start succeeds
+        Log.i("Call", "video start is OK");
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.videoStateChange(call);
+        }
     }
-
     @Override
-    public void videoStopFailed(CallInterface callInterface, MobileError mobileError) {
+    public void videoStartFailed(CallInterface call, MobileError error) {
+    //called when video start fails
+        Log.e("Call", "video start failed : " + error.getErrorMessage());
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
+
     }
-
     @Override
-    public void videoStartSucceed(CallInterface callInterface) {
+    public void videoStopSucceed(CallInterface call) {
+    //called when video stop succeeds
+        Log.i("Call", "video stop is OK");
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.videoStateChange(call);
+        }
     }
-
     @Override
-    public void videoStartFailed(CallInterface callInterface, MobileError mobileError) {
+    public void videoStopFailed(CallInterface call, MobileError error) {
+    //called when video stop fails
+        Log.e("Call", "video stop failed : " + error.getErrorMessage());
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
     public void muteCallSucceed(CallInterface callInterface) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.voiceStateChange(call);
+        }
     }
 
     @Override
     public void muteCallFailed(CallInterface callInterface, MobileError mobileError) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
     public void unMuteCallSucceed(CallInterface callInterface) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.voiceStateChange(call);
+        }
     }
 
     @Override
     public void unMuteCallFailed(CallInterface callInterface, MobileError mobileError) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
-    public void holdCallSucceed(CallInterface callInterface) {
+    public void holdCallSucceed(CallInterface call) {
+        Log.i("Call", "hold call is OK");
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.holdStateChange(call);
+        }
     }
-
     @Override
-    public void holdCallFailed(CallInterface callInterface, MobileError mobileError) {
+    public void holdCallFailed(CallInterface call, MobileError error) {
+        Log.e("Call", "hold call failed : " + error.getErrorMessage());
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
     public void transferCallSucceed(CallInterface callInterface) {
+        Log.i("Call", "Transfer is OK");
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.transferCallListener(call);
+        }
     }
 
     @Override
     public void transferCallFailed(CallInterface callInterface, MobileError mobileError) {
+        Log.e("Call", "Transfer failed : " + mobileError.getErrorMessage());
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
     public void unHoldCallSucceed(CallInterface callInterface) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.holdStateChange(call);
+        }
     }
 
     @Override
     public void unHoldCallFailed(CallInterface callInterface, MobileError mobileError) {
+        CallStateListener callStateListener = (CallStateListener) getSupportFragmentManager().findFragmentByTag(call.getId());
+        if (callStateListener != null) {
+            callStateListener.failStates(call);
+        }
     }
 
     @Override
@@ -471,6 +706,8 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
 
     @Override
     public void onBackPressed() {
+        super.onBackPressed();
+        Toast.makeText(getApplicationContext(),"Please Logout",Toast.LENGTH_SHORT).show();
     }
 }
 
