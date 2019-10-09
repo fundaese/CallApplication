@@ -275,18 +275,47 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
         video.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!(call.isVideoEnabled())){
+
+                progressDialog = new ProgressDialog(getContext());
+                progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                progressDialog.setCanceledOnTouchOutside(false);
+                progressDialog.setMessage("Please wait..");
+                progressDialog.show();
+                final int totalTime = 30;
+                final Thread t = new Thread() {
+                    @Override
+                    public void run() {
+                        int jumpTime = 0;
+
+                        while(jumpTime < totalTime) {
+                            try {
+                                sleep(200);
+                                jumpTime += 1;
+                                progressDialog.setProgress(jumpTime);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                };
+                t.start();
+
+                if(call.getMediaAttributes().getLocalVideo()){
+                    call.videoStop();
+                    video.setBackgroundResource(R.drawable.btn_video_call);
+                    localVideoView.setVisibility(View.GONE);
+                    remoteVideoView.setVisibility(View.GONE);
+                    AudioManager audioManager = (AudioManager) getActivity().getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setSpeakerphoneOn(false);
+                }
+                else{
                     call.setRemoteVideoView(remoteVideoView);
                     call.setLocalVideoView(localVideoView);
                     call.videoStart();
+                    AudioManager audioManager = (AudioManager) getActivity().getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setSpeakerphoneOn(true);
                     video.setBackgroundResource(R.drawable.btn_videooff);
                     Configuration.getInstance().setDefaultCameraMode(Camera.CameraInfo.CAMERA_FACING_FRONT);
-                }
-                else if(call.isVideoEnabled()){
-                    call.videoStop();
-                    video.setBackgroundResource(R.drawable.btn_video_call);
-                    call.setLocalVideoView(null);
-                    call.setRemoteVideoView(null);
                 }
             }
         });
@@ -543,6 +572,10 @@ public class OutGoingCallFragment extends Fragment implements CallStateListener 
     @Override
     public void mediaAttributesChanged(CallInterface call) {
         this.call = call;
+
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
 
         localVideoView.setVisibility(call.getMediaAttributes().getLocalVideo() ? View.VISIBLE : View.GONE);
         remoteVideoView.setVisibility(call.getMediaAttributes().getRemoteVideo() ? View.VISIBLE : View.GONE);

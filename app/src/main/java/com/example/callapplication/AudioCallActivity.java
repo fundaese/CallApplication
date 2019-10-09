@@ -706,8 +706,6 @@ public class AudioCallActivity extends AppCompatActivity implements CallApplicat
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        Toast.makeText(getApplicationContext(),"Please Logout",Toast.LENGTH_SHORT).show();
     }
 }
 

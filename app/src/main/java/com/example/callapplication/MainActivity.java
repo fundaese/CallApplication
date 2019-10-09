@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         userName = findViewById(R.id.userName);
-        userName.setText("adem2@spidr.com");
+        userName.setText("adem8@spidr.com");
 
         //userName.setText("3221030@cucm1.spidrmulti.netas.lab.nortel.com");
         //userName.setText("3221032@cucm1.spidrmulti.netas.lab.nortel.com");

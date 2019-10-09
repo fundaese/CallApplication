@@ -257,17 +257,22 @@ public class InComingCallFragment extends Fragment implements CallStateListener 
         video.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!(call.isVideoEnabled())){
+                if(call.getMediaAttributes().getLocalVideo()){
+                    call.videoStop();
+                    video.setBackgroundResource(R.drawable.btn_video_call);
+                    localVideoView.setVisibility(View.GONE);
+                    remoteVideoView.setVisibility(View.GONE);
+                    AudioManager audioManager = (AudioManager) getActivity().getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setSpeakerphoneOn(false);
+                }
+                else{
                     call.setRemoteVideoView(remoteVideoView);
                     call.setLocalVideoView(localVideoView);
                     call.videoStart();
                     video.setBackgroundResource(R.drawable.btn_videooff);
                     Configuration.getInstance().setDefaultCameraMode(Camera.CameraInfo.CAMERA_FACING_FRONT);
-                }else{
-                    call.videoStop();
-                    video.setBackgroundResource(R.drawable.btn_video_call);
-                    localVideoView.setVisibility(View.GONE);
-                    remoteVideoView.setVisibility(View.GONE);
+                    AudioManager audioManager = (AudioManager) getActivity().getSystemService(Context.AUDIO_SERVICE);
+                    audioManager.setSpeakerphoneOn(true);
                 }
             }
         });
